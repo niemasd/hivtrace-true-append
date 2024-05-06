@@ -28,9 +28,10 @@ def print_log(s='', end='\n'):
 # parse user args
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-t', '--input_user_table', required=True, type=str, help="Input: User table (CSV)")
-    parser.add_argument('-T', '--input_old_table', required=True, type=str, help="Input: Old table (CSV)")
-    parser.add_argument('-D', '--input_old_dists', required=True, type=str, help="Input: Old TN93 distances (CSV)")
+    parser.add_argument('-it', '--input_user_table', required=True, type=str, help="Input: User table (CSV)")
+    parser.add_argument('-iT', '--input_old_table', required=True, type=str, help="Input: Old table (CSV)")
+    parser.add_argument('-iD', '--input_old_dists', required=True, type=str, help="Input: Old TN93 distances (CSV)")
+    parser.add_argument('-oD', '--output_dists', required=True, type=str, help="Output: Updated TN93 distances (CSV)")
     parser.add_argument('--tn93_args', required=False, type=str, default=DEFAULT_TN93_ARGS, help="Optional tn93 arguments")
     parser.add_argument('--tn93_path', required=False, type=str, default=DEFAULT_TN93_PATH, help="Path to tn93 executable")
     args = parser.parse_args()

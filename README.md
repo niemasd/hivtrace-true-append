@@ -2,5 +2,5 @@
 Code related to HIV-TRACE "True Append"
 
 ```bash
-./hivtrace_true_append.py -t example/Network-New-2.csv -T example/Network-New-1.csv -D example/Network-New-1.tn93.csv -f tmp.user.fas.gz -F tmp.old.fas.gz --overwrite_output_user_fasta --overwrite_output_old_fasta
+./hivtrace_true_append.py -it example/Network-New-2.csv -iT example/Network-New-1.csv -iD example/Network-New-1.tn93.csv -oD tmp.tn93.csv.gz
 ```
