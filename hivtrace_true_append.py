@@ -71,6 +71,13 @@ def parse_table(input_table):
     infile.close()
     return seqs
 
+# determine dataset deltas
+# Argument: `seqs_user` = `dict` where keys are user-uploaded sequence IDs and values are sequences
+# Argument: `seqs_old` = `dict` where keys are existing sequence IDs and values are sequences
+# Return: TODO
+def determine_deltas(seqs_user, seqs_old):
+    exit(1) # TODO
+
 # run tn93 on all pairs in one dataset
 # Argument: `seqs` = `dict` where keys are sequence IDs and values are sequences
 # Argument: `tn93_args` = string containing optional tn93 arguments
@@ -80,7 +87,7 @@ def run_tn93_all_pairs(seqs, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93
     fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items()).encode('utf-8')
     tmp = run(tn93_command, input=fasta_data, capture_output=True)
     #print(tmp)
-    pass # TODO
+    exit(1) # TODO
 
 # main program
 def main():
@@ -91,7 +98,9 @@ def main():
     seqs_user = parse_table(args.input_user_table)
     print_log("Parsing old table: %s" % args.input_old_table)
     seqs_old = parse_table(args.input_old_table)
-    run_tn93_all_pairs(seqs_user, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
+    print_log("Determining deltas between user table and old table...")
+    determine_deltas(seqs_user, seqs_old)
+    #run_tn93_all_pairs(seqs_user, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
 
 # run main program
 if __name__ == "__main__":
