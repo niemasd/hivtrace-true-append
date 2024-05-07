@@ -25,6 +25,15 @@ def get_time():
 def print_log(s='', end='\n'):
     print("[%s] %s" % (get_time(), s), file=stderr, end=end); stderr.flush()
 
+# open file and return file object
+def open_file(fn, mode='r', text=True):
+    if fn.lower().endswith('.gz'):
+        if text:
+            mode += 't'
+        return gopen(fn, mode)
+    else:
+        return open(fn, mode)
+
 # parse user args
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -38,6 +47,9 @@ def parse_args():
     for fn in [args.input_user_table, args.input_old_table, args.input_old_dists]:
         if not isfile(fn):
             raise ValueError("File not found: %s" % fn)
+    for fn in [args.output_dists]:
+        if isfile(fn):
+            raise ValueError("File exists: %s" % fn)
     return args
 
 # parse input table
@@ -46,10 +58,7 @@ def parse_args():
 def parse_table(input_table):
     # set things up
     header_row = None; col2ind = None; seqs = dict()
-    if input_table.lower().endswith('.gz'):
-        infile = gopen(input_table, 'rt')
-    else:
-        infile = open(input_table, 'r')
+    infile = open_file(input_table)
 
     # load sequences from table (and potentially write output FASTA)
     for row in reader(infile):
@@ -90,23 +99,7 @@ def determine_deltas(seqs_user, seqs_old):
 
 # remove IDs from TN93 distance CSV
 def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
-    # open files
-    if in_dists_fn.lower().endswith('.gz'):
-        infile = gopen(in_dists_fn, 'rt')
-    else:
-        infile = open(in_dists_fn, 'r')
-    if out_dists_fn.lower().endswith('.gz'):
-        if append_out:
-            outfile = gopen(out_dists_fn, 'at')
-        else:
-            outfile = gopen(out_dists_fn, 'wt')
-    else:
-        if append_out:
-            outfile = open(out_dists_fn, 'a')
-        else:
-            outfile = open(out_dists_fn, 'w')
-
-    # write input to output
+    infile = open_file(in_dists_fn); outfile = open_file(out_dists_fn, 'w')
     for row_num, line in enumerate(infile):
         row = [v.strip() for v in line.split(',')]
         if row_num == 0 or (row[0] not in to_delete and row[1] not in to_delete):
@@ -117,10 +110,10 @@ def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
 # Argument: `seqs` = `dict` where keys are sequence IDs and values are sequences
 # Argument: `tn93_args` = string containing optional tn93 arguments
 # Argument: `tn93_path` = path to tn93 executable
-def run_tn93_all_pairs(seqs, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93_PATH):
+def run_tn93_all_pairs(seqs, out_dists_fn, to_add, append_out=True, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93_PATH):
     tn93_command = [tn93_path] + [v.strip() for v in tn93_args.split()]
     fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items()).encode('utf-8')
-    tmp = run(tn93_command, input=fasta_data, capture_output=True)
+    #tmp = run(tn93_command, input=fasta_data, stdout=)
     #print(tmp)
     exit(1) # TODO
 
@@ -144,7 +137,7 @@ def main():
     print_log("Creating output TN93 distances CSV: %s" % args.output_dists)
     print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
     remove_IDs_tn93(args.input_old_dists, args.output_dists, to_delete | to_replace, append_out=False)
-    #run_tn93_all_pairs(seqs_user, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
+    run_tn93_all_pairs(seqs_user, args.output_dists, to_add, append_out=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
 
 # run main program
 if __name__ == "__main__":
