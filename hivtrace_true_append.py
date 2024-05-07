@@ -88,6 +88,31 @@ def determine_deltas(seqs_user, seqs_old):
             to_add.add(ID)
     return to_add, to_replace, to_delete
 
+# remove IDs from TN93 distance CSV
+def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
+    # open files
+    if in_dists_fn.lower().endswith('.gz'):
+        infile = gopen(in_dists_fn, 'rt')
+    else:
+        infile = open(in_dists_fn, 'r')
+    if out_dists_fn.lower().endswith('.gz'):
+        if append_out:
+            outfile = gopen(out_dists_fn, 'at')
+        else:
+            outfile = gopen(out_dists_fn, 'wt')
+    else:
+        if append_out:
+            outfile = open(out_dists_fn, 'a')
+        else:
+            outfile = open(out_dists_fn, 'w')
+
+    # write input to output
+    for row_num, line in enumerate(infile):
+        row = [v.strip() for v in line.split(',')]
+        if row_num == 0 or (row[0] not in to_delete and row[1] not in to_delete):
+            outfile.write(line)
+    infile.close(); outfile.close()
+
 # run tn93 on all pairs in one dataset
 # Argument: `seqs` = `dict` where keys are sequence IDs and values are sequences
 # Argument: `tn93_args` = string containing optional tn93 arguments
@@ -116,6 +141,9 @@ def main():
     print_log("- Replace: %s" % len(to_replace))
     print_log("- Delete: %s" % len(to_delete))
     print_log("- Do nothing: %s" % (len(seqs_old)-len(to_replace)-len(to_delete)))
+    print_log("Creating output TN93 distances CSV: %s" % args.output_dists)
+    print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
+    remove_IDs_tn93(args.input_old_dists, args.output_dists, to_delete | to_replace, append_out=False)
     #run_tn93_all_pairs(seqs_user, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
 
 # run main program
