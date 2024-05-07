@@ -76,7 +76,9 @@ def parse_table(input_table):
 # Argument: `seqs_old` = `dict` where keys are existing sequence IDs and values are sequences
 # Return: TODO
 def determine_deltas(seqs_user, seqs_old):
-    exit(1) # TODO
+    to_add = set(); to_replace = set(); to_delete = set()
+    pass # TODO
+    return to_add, to_replace, to_delete
 
 # run tn93 on all pairs in one dataset
 # Argument: `seqs` = `dict` where keys are sequence IDs and values are sequences
@@ -96,10 +98,15 @@ def main():
     print_log("Command: %s" % ' '.join(argv))
     print_log("Parsing user table: %s" % args.input_user_table)
     seqs_user = parse_table(args.input_user_table)
+    print_log("- Num Sequences: %s" % len(seqs_user))
     print_log("Parsing old table: %s" % args.input_old_table)
     seqs_old = parse_table(args.input_old_table)
+    print_log("- Num Sequences: %s" % (len(seqs_old)))
     print_log("Determining deltas between user table and old table...")
-    determine_deltas(seqs_user, seqs_old)
+    to_add, to_replace, to_delete = determine_deltas(seqs_user, seqs_old)
+    print_log("- Add: %s" % len(to_add))
+    print_log("- Replace: %s" % len(to_replace))
+    print_log("- Delete: %s" % len(to_delete))
     #run_tn93_all_pairs(seqs_user, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
 
 # run main program
