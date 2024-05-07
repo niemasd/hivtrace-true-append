@@ -90,16 +90,19 @@ def parse_table(input_table):
 # Return: `to_add` = `set` containing IDs in `seqs_user` that need to be added to `seqs_old`
 # Return: `to_replace` = `set` containing IDs in `seqs_old` whose sequences need to be updated with those in `seqs_user`
 # Return: `to_delete` = `set` containing IDs in `seqs_old` that need to be deleted
+# Return: `to_keep` = `set` containing IDs in `seqs_old` that need to be kept as-is
 def determine_deltas(seqs_user, seqs_old):
-    to_add = set(); to_replace = set(); to_delete = set(seqs_old.keys())
+    to_add = set(); to_replace = set(); to_delete = set(seqs_old.keys()); to_keep = set()
     for ID in seqs_user:
         if ID in seqs_old:
             to_delete.remove(ID)
-            if seqs_user[ID] != seqs_old[ID]:
+            if seqs_user[ID] == seqs_old[ID]:
+                to_keep.add(ID)
+            else:
                 to_replace.add(ID)
         else:
             to_add.add(ID)
-    return to_add, to_replace, to_delete
+    return to_add, to_replace, to_delete, to_keep
 
 # remove IDs from TN93 distance CSV
 def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
@@ -116,7 +119,7 @@ def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
 # Argument: `tn93_path` = path to tn93 executable
 def run_tn93_all_pairs(seqs, out_dists_fn, to_add, append_out=True, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93_PATH):
     tn93_command = [tn93_path] + [v.strip() for v in tn93_args.split()]
-    fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items()).encode('utf-8')
+    fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items() if kv[0] in to_add).encode('utf-8')
     outfile = open_file(out_dists_fn, 'a')
     run(tn93_command, input=fasta_data, stdout=outfile)
     outfile.close()
@@ -133,16 +136,18 @@ def main():
     seqs_old = parse_table(args.input_old_table)
     print_log("- Num Sequences: %s" % (len(seqs_old)))
     print_log("Determining deltas between user table and old table...")
-    to_add, to_replace, to_delete = determine_deltas(seqs_user, seqs_old)
+    to_add, to_replace, to_delete, to_keep = determine_deltas(seqs_user, seqs_old)
     print_log("- Add: %s" % len(to_add))
     print_log("- Replace: %s" % len(to_replace))
     print_log("- Delete: %s" % len(to_delete))
-    print_log("- Do nothing: %s" % (len(seqs_old)-len(to_replace)-len(to_delete)))
+    print_log("- Do nothing: %s" % (len(to_keep)))
     print_log("Creating output TN93 distances CSV: %s" % args.output_dists)
     print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
+    dont_copy = to_delete | to_replace
     remove_IDs_tn93(args.input_old_dists, args.output_dists, to_delete | to_replace, append_out=False)
     print_log("Calculating all pairwise new-new distances...")
     run_tn93_all_pairs(seqs_user, args.output_dists, to_add | to_replace, append_out=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
+    print_log("Calculating all pairwise new-old distances...")
 
 # run main program
 if __name__ == "__main__":
