@@ -139,7 +139,7 @@ def run_tn93_all_pairs(seqs, out_dists_file, to_add, remove_header=True, tn93_ar
     tn93_command = [tn93_path] + [v.strip() for v in tn93_args.split()]
     if remove_header:
         tn93_command.append('-n')
-    fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items() if kv[0] in to_add).encode('utf-8')
+    fasta_data = ''.join('>%s\n%s\n' % (k,seqs[k]) for k in to_add).encode('utf-8')
     run(tn93_command, input=fasta_data, stdout=out_dists_file)
 
 # run tn93 on all old-vs-new pairs
