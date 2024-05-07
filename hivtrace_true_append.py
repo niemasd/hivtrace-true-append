@@ -10,6 +10,7 @@ from gzip import open as gopen
 from os.path import isfile
 from subprocess import run
 from sys import argv, stderr, stdin, stdout
+from tempfile import NamedTemporaryFile
 import argparse
 
 # constants
@@ -144,15 +145,19 @@ def run_tn93(seqs_new, seqs_old, out_dists_file, to_add, to_replace, to_keep, re
     new_fasta_data = ''.join('>%s\n%s\n' % (k,seqs_new[k]) for k in (to_add | to_replace)).encode('utf-8')
 
     # calculate new-new distances
-    tn93_command_new_new = list(tn93_base_command)
-    if remove_header:
-        tn93_command_new_new.append('-n')
-    if len(to_add) + len(to_replace) != 0:
+    if len(new_fasta_data) != 0:
+        tn93_command_new_new = list(tn93_base_command)
+        if remove_header:
+            tn93_command_new_new.append('-n')
         run(tn93_command_new_new, input=new_fasta_data, stdout=out_dists_file)
 
     # calculate new-old distances
-    tn93_command_new_old = tn93_base_command + ['-n'] # have to remove header in second set
-    pass # TODO
+    if len(new_fasta_data) != 0 and len(to_keep) != 0:
+        old_fasta_data = ''.join('>%s\n%s\n' % (k,seqs_old[k]) for k in to_keep).encode('utf-8')
+        new_fasta_tmp_file = NamedTemporaryFile(mode='wb'); new_fasta_tmp_file.write(new_fasta_data); new_fasta_tmp_file.flush()
+        tn93_command_new_old = tn93_base_command + ['-n', '-s', new_fasta_tmp_file.name]
+        run(tn93_command_new_old, input=old_fasta_data, stdout=out_dists_file)
+        new_fasta_tmp_file.close()
 
 # main program
 def main():
