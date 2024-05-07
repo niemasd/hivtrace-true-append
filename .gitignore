@@ -1,5 +1,7 @@
 # True Append files
 tmp*
+*.csv
+*.csv.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
