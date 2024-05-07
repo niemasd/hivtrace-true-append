@@ -74,7 +74,9 @@ def parse_table(input_table):
 # determine dataset deltas
 # Argument: `seqs_user` = `dict` where keys are user-uploaded sequence IDs and values are sequences
 # Argument: `seqs_old` = `dict` where keys are existing sequence IDs and values are sequences
-# Return: TODO
+# Return: `to_add` = `set` containing IDs in `seqs_user` that need to be added to `seqs_old`
+# Return: `to_replace` = `set` containing IDs in `seqs_old` whose sequences need to be updated with those in `seqs_user`
+# Return: `to_delete` = `set` containing IDs in `seqs_old` that need to be deleted
 def determine_deltas(seqs_user, seqs_old):
     to_add = set(); to_replace = set(); to_delete = set()
     pass # TODO
