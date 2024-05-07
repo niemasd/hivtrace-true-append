@@ -9,13 +9,23 @@ from datetime import datetime
 from gzip import open as gopen
 from os.path import isfile
 from subprocess import run
-from sys import argv, stderr
+from sys import argv, stderr, stdin, stdout
 import argparse
 
 # constants
 VERSION = '0.0.1'
 DEFAULT_TN93_ARGS = ''
 DEFAULT_TN93_PATH = 'tn93'
+MIN_TN93_VERSION = '1.0.14'
+STDIO = {'stderr':stderr, 'stdin':stdin, 'stdout':stdout}
+
+# check TN93 version
+def check_tn93_version(tn93_path):
+    A, B, C = [int(v) for v in MIN_TN93_VERSION.split('.')]
+    user_version = run([tn93_path, '--version'], capture_output=True).stderr.decode().strip().lstrip('v')
+    a, b, c = [int(v) for v in user_version.split('.')]
+    if (a < A) or (a == A and b < B) or (a == A and b == B and c < C):
+        raise ValueError("Installed tn93 version (%s) is below the minimum required version (%s)" % (user_version, MIN_TN93_VERSION))
 
 # return the current time as a string
 def get_time():
@@ -27,7 +37,9 @@ def print_log(s='', end='\n'):
 
 # open file and return file object
 def open_file(fn, mode='r', text=True):
-    if fn.lower().endswith('.gz'):
+    if fn in STDIO:
+        return STDIO[fn]
+    elif fn.lower().endswith('.gz'):
         if mode == 'a':
             raise NotImplementedError("Cannot append to gzip file")
         if text:
@@ -42,7 +54,7 @@ def parse_args():
     parser.add_argument('-it', '--input_user_table', required=True, type=str, help="Input: User table (CSV)")
     parser.add_argument('-iT', '--input_old_table', required=True, type=str, help="Input: Old table (CSV)")
     parser.add_argument('-iD', '--input_old_dists', required=True, type=str, help="Input: Old TN93 distances (CSV)")
-    parser.add_argument('-oD', '--output_dists', required=True, type=str, help="Output: Updated TN93 distances (CSV)")
+    parser.add_argument('-oD', '--output_dists', required=False, type=str, default='stdout', help="Output: Updated TN93 distances (CSV)")
     parser.add_argument('--tn93_args', required=False, type=str, default=DEFAULT_TN93_ARGS, help="Optional tn93 arguments")
     parser.add_argument('--tn93_path', required=False, type=str, default=DEFAULT_TN93_PATH, help="Path to tn93 executable")
     args = parser.parse_args()
@@ -59,10 +71,10 @@ def parse_args():
 # parse input table
 # Argument: `input_table` = path to input table CSV
 # Return: `dict` in which keys are EHARS UIDs and values are clean_seqs
-def parse_table(input_table):
+def parse_table(input_table_fn):
     # set things up
     header_row = None; col2ind = None; seqs = dict()
-    infile = open_file(input_table)
+    infile = open_file(input_table_fn)
 
     # load sequences from table (and potentially write output FASTA)
     for row in reader(infile):
@@ -105,30 +117,37 @@ def determine_deltas(seqs_user, seqs_old):
     return to_add, to_replace, to_delete, to_keep
 
 # remove IDs from TN93 distance CSV
-def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
-    infile = open_file(in_dists_fn); outfile = open_file(out_dists_fn, 'w')
+# Argument: `in_dists_fn` = path to input old TN93 distances file
+# Argument: `out_dists_file` = write/append-mode file object to output TN93 distances file
+# Argument: `to_delete` = `set` containing IDs to remove from TN93 distances file
+# Argument: `remove_header` = `True` to remove the header in the output file, otherwise `False`
+def remove_IDs_tn93(in_dists_fn, out_dists_file, to_delete, remove_header=True):
+    infile = open_file(in_dists_fn)
     for row_num, line in enumerate(infile):
         row = [v.strip() for v in line.split(',')]
-        if row_num == 0 or (row[0] not in to_delete and row[1] not in to_delete):
-            outfile.write(line)
-    infile.close(); outfile.close()
+        if (row_num == 0 and not remove_header) or (row_num != 0 and row[0] not in to_delete and row[1] not in to_delete):
+            out_dists_file.write(line)
+    infile.close()
 
 # run tn93 on all pairs in one dataset
 # Argument: `seqs` = `dict` where keys are sequence IDs and values are sequences
+# Argument: `out_dists_file` = write/append-mode file object to output TN93 distances file
+# Argument: `to_add` = `set` containing IDs to add to TN93 distances file
 # Argument: `tn93_args` = string containing optional tn93 arguments
 # Argument: `tn93_path` = path to tn93 executable
-def run_tn93_all_pairs(seqs, out_dists_fn, to_add, append_out=True, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93_PATH):
+def run_tn93_all_pairs(seqs, out_dists_file, to_add, remove_header=True, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93_PATH):
     tn93_command = [tn93_path] + [v.strip() for v in tn93_args.split()]
+    if remove_header:
+        tn93_command.append('-n')
     fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items() if kv[0] in to_add).encode('utf-8')
-    outfile = open_file(out_dists_fn, 'a')
-    run(tn93_command, input=fasta_data, stdout=outfile)
-    outfile.close()
+    run(tn93_command, input=fasta_data, stdout=out_dists_file)
 
 # main program
 def main():
     print_log("Running HIV-TRACE True Append v%s" % VERSION)
     args = parse_args()
     print_log("Command: %s" % ' '.join(argv))
+    check_tn93_version(args.tn93_path)
     print_log("Parsing user table: %s" % args.input_user_table)
     seqs_user = parse_table(args.input_user_table)
     print_log("- Num Sequences: %s" % len(seqs_user))
@@ -142,12 +161,13 @@ def main():
     print_log("- Delete: %s" % len(to_delete))
     print_log("- Do nothing: %s" % (len(to_keep)))
     print_log("Creating output TN93 distances CSV: %s" % args.output_dists)
+    output_dists_file = open_file(args.output_dists, 'w')
     print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
-    dont_copy = to_delete | to_replace
-    remove_IDs_tn93(args.input_old_dists, args.output_dists, to_delete | to_replace, append_out=False)
+    remove_IDs_tn93(args.input_old_dists, output_dists_file, to_delete | to_replace, remove_header=False)
     print_log("Calculating all pairwise new-new distances...")
-    run_tn93_all_pairs(seqs_user, args.output_dists, to_add | to_replace, append_out=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
+    run_tn93_all_pairs(seqs_user, output_dists_file, to_add | to_replace, remove_header=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
     print_log("Calculating all pairwise new-old distances...")
+    pass # TODO
 
 # run main program
 if __name__ == "__main__":
