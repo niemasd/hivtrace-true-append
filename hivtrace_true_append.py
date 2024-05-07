@@ -28,6 +28,8 @@ def print_log(s='', end='\n'):
 # open file and return file object
 def open_file(fn, mode='r', text=True):
     if fn.lower().endswith('.gz'):
+        if mode == 'a':
+            raise NotImplementedError("Cannot append to gzip file")
         if text:
             mode += 't'
         return gopen(fn, mode)
@@ -48,6 +50,8 @@ def parse_args():
         if not isfile(fn):
             raise ValueError("File not found: %s" % fn)
     for fn in [args.output_dists]:
+        if fn.lower().endswith('.gz'):
+            raise NotImplementedError("Gzipped output not currently supported")
         if isfile(fn):
             raise ValueError("File exists: %s" % fn)
     return args
@@ -113,9 +117,9 @@ def remove_IDs_tn93(in_dists_fn, out_dists_fn, to_delete, append_out=False):
 def run_tn93_all_pairs(seqs, out_dists_fn, to_add, append_out=True, tn93_args=DEFAULT_TN93_ARGS, tn93_path=DEFAULT_TN93_PATH):
     tn93_command = [tn93_path] + [v.strip() for v in tn93_args.split()]
     fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items()).encode('utf-8')
-    #tmp = run(tn93_command, input=fasta_data, stdout=)
-    #print(tmp)
-    exit(1) # TODO
+    outfile = open_file(out_dists_fn, 'a')
+    run(tn93_command, input=fasta_data, stdout=outfile)
+    outfile.close()
 
 # main program
 def main():
@@ -137,7 +141,8 @@ def main():
     print_log("Creating output TN93 distances CSV: %s" % args.output_dists)
     print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
     remove_IDs_tn93(args.input_old_dists, args.output_dists, to_delete | to_replace, append_out=False)
-    run_tn93_all_pairs(seqs_user, args.output_dists, to_add, append_out=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
+    print_log("Calculating all pairwise new-new distances...")
+    run_tn93_all_pairs(seqs_user, args.output_dists, to_add | to_replace, append_out=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
 
 # run main program
 if __name__ == "__main__":
