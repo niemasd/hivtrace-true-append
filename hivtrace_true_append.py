@@ -64,7 +64,7 @@ def parse_args():
             raise ValueError("File not found: %s" % fn)
     for fn in [args.output_dists]:
         if fn.lower().endswith('.gz'):
-            raise NotImplementedError("Gzipped output not currently supported")
+            raise ValueError("Cannot directly write to gzip output file. To gzip the output, specify 'stdout' as the output file, and then pipe to gzip.")
         if isfile(fn):
             raise ValueError("File exists: %s" % fn)
     return args
@@ -183,7 +183,6 @@ def main():
     remove_IDs_tn93(args.input_old_dists, output_dists_file, to_keep, remove_header=False)
     print_log("Calculating all new pairwise TN93 distances...")
     run_tn93(seqs_new, seqs_old, output_dists_file, to_add, to_replace, to_keep, remove_header=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
-    pass # TODO
 
 # run main program
 if __name__ == "__main__":
