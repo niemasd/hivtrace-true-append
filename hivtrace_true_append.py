@@ -78,8 +78,14 @@ def parse_table(input_table):
 # Return: `to_replace` = `set` containing IDs in `seqs_old` whose sequences need to be updated with those in `seqs_user`
 # Return: `to_delete` = `set` containing IDs in `seqs_old` that need to be deleted
 def determine_deltas(seqs_user, seqs_old):
-    to_add = set(); to_replace = set(); to_delete = set()
-    pass # TODO
+    to_add = set(); to_replace = set(); to_delete = set(seqs_old.keys())
+    for ID in seqs_user:
+        if ID in seqs_old:
+            to_delete.remove(ID)
+            if seqs_user[ID] != seqs_old[ID]:
+                to_replace.add(ID)
+        else:
+            to_add.add(ID)
     return to_add, to_replace, to_delete
 
 # run tn93 on all pairs in one dataset
@@ -109,6 +115,7 @@ def main():
     print_log("- Add: %s" % len(to_add))
     print_log("- Replace: %s" % len(to_replace))
     print_log("- Delete: %s" % len(to_delete))
+    print_log("- Do nothing: %s" % (len(seqs_old)-len(to_replace)-len(to_delete)))
     #run_tn93_all_pairs(seqs_user, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
 
 # run main program
