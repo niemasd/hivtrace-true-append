@@ -119,13 +119,13 @@ def determine_deltas(seqs_user, seqs_old):
 # remove IDs from TN93 distance CSV
 # Argument: `in_dists_fn` = path to input old TN93 distances file
 # Argument: `out_dists_file` = write/append-mode file object to output TN93 distances file
-# Argument: `to_delete` = `set` containing IDs to remove from TN93 distances file
+# Argument: `to_keep` = `set` containing IDs to keep in TN93 distances file
 # Argument: `remove_header` = `True` to remove the header in the output file, otherwise `False`
-def remove_IDs_tn93(in_dists_fn, out_dists_file, to_delete, remove_header=True):
+def remove_IDs_tn93(in_dists_fn, out_dists_file, to_keep, remove_header=True):
     infile = open_file(in_dists_fn)
     for row_num, line in enumerate(infile):
         row = [v.strip() for v in line.split(',')]
-        if (row_num == 0 and not remove_header) or (row_num != 0 and row[0] not in to_delete and row[1] not in to_delete):
+        if (row_num == 0 and not remove_header) or (row_num != 0 and row[0] in to_keep and row[1] in to_keep):
             out_dists_file.write(line)
     infile.close()
 
@@ -141,6 +141,9 @@ def run_tn93_all_pairs(seqs, out_dists_file, to_add, remove_header=True, tn93_ar
         tn93_command.append('-n')
     fasta_data = ''.join('>%s\n%s\n' % kv for kv in seqs.items() if kv[0] in to_add).encode('utf-8')
     run(tn93_command, input=fasta_data, stdout=out_dists_file)
+
+# run tn93 on all old-vs-new pairs
+#def run_tn93_old_new_pairs(seqs_new, seqs_user, 
 
 # main program
 def main():
@@ -163,7 +166,7 @@ def main():
     print_log("Creating output TN93 distances CSV: %s" % args.output_dists)
     output_dists_file = open_file(args.output_dists, 'w')
     print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
-    remove_IDs_tn93(args.input_old_dists, output_dists_file, to_delete | to_replace, remove_header=False)
+    remove_IDs_tn93(args.input_old_dists, output_dists_file, to_keep, remove_header=False)
     print_log("Calculating all pairwise new-new distances...")
     run_tn93_all_pairs(seqs_user, output_dists_file, to_add | to_replace, remove_header=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
     print_log("Calculating all pairwise new-old distances...")
