@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument('--tn93_path', required=False, type=str, default=DEFAULT_TN93_PATH, help="Path to tn93 executable")
     args = parser.parse_args()
     for fn in [args.input_user_table, args.input_old_table, args.input_old_dists]:
-        if not isfile(fn):
+        if not isfile(fn) and not fn.startswith('/dev/fd'):
             raise ValueError("File not found: %s" % fn)
     for fn in [args.output_dists]:
         if fn.lower().endswith('.gz'):

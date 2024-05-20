@@ -2,5 +2,11 @@
 Code related to HIV-TRACE "True Append"
 
 ```bash
-./hivtrace_true_append.py -it example/Network-New-2.csv -iT example/Network-New-1.csv -iD example/Network-New-1.tn93.csv | pigz -9 -p 8 > tmp.tn93.csv.gz
+./hivtrace_true_append.py -it example/Network-New-4.csv -iT example/Network-New-3.csv -iD example/Network-New-3.tn93.csv | pigz -9 -p 8 > tmp.tn93.csv.gz
+```
+
+To feed the input files via named pipes (e.g. to feed from gzipped files, from a non-flat-file dataset, etc.):
+
+```bash
+./hivtrace_true_append.py -it <(cat example/Network-New-4.csv) -iT <(cat example/Network-New-3.csv) -iD <(cat example/Network-New-3.tn93.csv) | pigz -9 -p 8 > tmp.tn93.csv.gz
 ```
