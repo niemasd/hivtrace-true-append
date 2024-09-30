@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 '''
-True Append for HIV-TRACE
+True Append for TN93
 '''
 
 # imports
@@ -17,7 +17,7 @@ from threading import Thread
 import argparse
 
 # constants
-HIVTRACE_TRUE_APPEND_VERSION = '0.0.2'
+TN93_TRUE_APPEND_VERSION = '0.0.2'
 DEFAULT_TN93_ARGS = ''
 DEFAULT_TN93_PATH = 'tn93'
 MIN_TN93_VERSION = '1.0.14'
@@ -178,7 +178,7 @@ def run_tn93(seqs_new, seqs_old, out_dists_file, to_add, to_replace, to_keep, re
 
 # main program
 def main():
-    print_log("Running HIV-TRACE True Append v%s" % HIVTRACE_TRUE_APPEND_VERSION)
+    print_log("Running TN93 True Append v%s" % TN93_TRUE_APPEND_VERSION)
     args = parse_args()
     print_log("Command: %s" % ' '.join(argv))
     check_tn93_version(args.tn93_path)
