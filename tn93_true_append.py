@@ -96,13 +96,13 @@ def parse_table(input_table_fn):
             header_row = row; col2ind = {k:i for i,k in enumerate(header_row)}
             for k in ['ehars_uid', 'clean_seq']:
                 if k not in col2ind:
-                    raise ValueError("Column '%s' missing from input user table: %s" % (k, input_user_table))
+                    raise ValueError("Column '%s' missing from input user table: %s" % (k, input_table_fn))
 
         # parse sequence row
         else:
             ehars_uid = row[col2ind['ehars_uid']].strip(); clean_seq = row[col2ind['clean_seq']].strip().upper()
             if ehars_uid in seqs:
-                raise ValueError("Duplicate EHARS UID (%s) in file: %s" % (ehars_uid, input_table))
+                raise ValueError("Duplicate EHARS UID (%s) in file: %s" % (ehars_uid, input_table_fn))
             seqs[ehars_uid] = clean_seq
 
     # clean up and return

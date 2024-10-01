@@ -14,6 +14,8 @@ To feed the input files via named pipes (e.g. to feed from gzipped files, from a
 
 ## DataQC
 
+The original DataQC command is the following:
+
 ```bash
-DataQCv2.py -t $(which tn93) -d true_append_items/DRAM.csv -c true_append_items/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.csv
+DataQCv2.py -t $(which tn93) -d true_append_items/DRAM.csv -c true_append_items/new_orig.csv
 ```
