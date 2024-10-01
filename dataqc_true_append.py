@@ -144,6 +144,34 @@ def run_DataQC(user_csv_fn, to_add, to_replace, out_fasta_fn, dataqc_py_path, dr
     log_f = open_file('%s.dataqc.log' % new_updated_csv_fn, 'w')
     run(dataqc_command, stderr=log_f); log_f.close()
 
+# copy unchanged sequences to new/updated DataQC output
+# assumes all lines (including empty ones) end in a newline character, so no newline == EOF
+def copy_unchanged_seqs(old_fasta_fn, to_keep, out_fasta_fn):
+    # set things up for reading/writing
+    old_fasta_file = open_file(old_fasta_fn)
+    out_fasta_file = open_file(out_fasta_fn, 'a')
+    line = old_fasta_file.readline()
+
+    # read old FASTA
+    while True:
+        # check for validity
+        if len(line) == 0:
+            break
+        elif line[0] != '>':
+            raise ValueError("Malformed FASTA: %s" % old_fasta_fn)
+        document_uid = line.split('~')[0][1:].strip()
+
+        # move to next sequence (and write this one to output if keeping it)
+        keep_seq = document_uid in to_keep
+        if keep_seq:
+            out_fasta_file.write(line)
+        line = old_fasta_file.readline()
+        while len(line) != 0 and line[0] != '>':
+            if keep_seq:
+                out_fasta_file.write(line)
+            line = old_fasta_file.readline()
+    old_fasta_file.close(); out_fasta_file.close()
+
 # main program
 def main():
     print_log("Running DataQC True Append v%s" % DATAQC_TRUE_APPEND_VERSION)
@@ -161,15 +189,10 @@ def main():
     print_log("- Replace: %s" % len(to_replace))
     print_log("- Delete: %s" % len(to_delete))
     print_log("- Do nothing: %s" % (len(to_keep)))
-    print_log("Performing new DataQC analyses...")
+    print_log("Performing new DataQC analyses and writing output to: %s" % args.fasta_file)
     run_DataQC(args.csv_file, to_add, to_replace, args.fasta_file, args.dataqc_py, dram_path=args.dram, comet_path=args.comet, tn93_path=args.tn93)
-    exit() # TODO
-    #print_log("Creating output DataQC FASTA: %s" % args.output_dists)
-    output_dists_file = open_file(args.output_dists, 'w')
-    print_log("Copying old TN93 distances from: %s" % args.input_old_dists)
-    remove_IDs_tn93(args.input_old_dists, output_dists_file, to_keep, remove_header=False)
-    print_log("Calculating all new pairwise TN93 distances...")
-    run_tn93(seqs_new, seqs_old, output_dists_file, to_add, to_replace, to_keep, remove_header=True, tn93_args=args.tn93_args, tn93_path=args.tn93_path)
+    print_log("Copying unchanged DataQC sequences from: %s" % args.old_fasta_file)
+    copy_unchanged_seqs(args.old_fasta_file, to_keep, args.fasta_file)
 
 # run main program
 if __name__ == "__main__":
