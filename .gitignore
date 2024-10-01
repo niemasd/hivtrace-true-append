@@ -2,6 +2,7 @@
 tmp*
 *.csv
 *.csv.gz
+true_append_items/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
