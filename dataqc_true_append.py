@@ -146,6 +146,9 @@ def run_DataQC(user_csv_fn, to_add, to_replace, out_fasta_fn, dataqc_py_path, dr
 
 # copy unchanged sequences to new/updated DataQC output
 # assumes all lines (including empty ones) end in a newline character, so no newline == EOF
+# Argument: `old_fasta_fn` = filename of old DataQC FASTA
+# Argument: `to_keep` = `set` containing IDs to keep from old FASTA
+# Argument: `out_fasta_fn` = filename of output DataQC FASTA
 def copy_unchanged_seqs(old_fasta_fn, to_keep, out_fasta_fn):
     # set things up for reading/writing
     old_fasta_file = open_file(old_fasta_fn)
