@@ -7,12 +7,13 @@ True Append for DataQC
 from csv import reader, writer
 from datetime import datetime
 from os.path import isfile
+from shutil import copyfile
 from subprocess import run
 from sys import argv, stderr, stdin, stdout
 import argparse
 
 # constants
-DATAQC_TRUE_APPEND_VERSION = '0.0.1'
+DATAQC_TRUE_APPEND_VERSION = '0.0.2'
 STDIO = {'stderr':stderr, 'stdin':stdin, 'stdout':stdout}
 
 # return the current time as a string
@@ -42,13 +43,14 @@ def parse_args():
     parser.add_argument('-c', '--csv-file', required=True, type=str, help="Input: User table (CSV)")
     parser.add_argument('-oc', '--old-csv-file', required=True, type=str, help="Input: Old table (CSV)")
     parser.add_argument('-of', '--old-fasta-file', required=True, type=str, help="Input: Old sequences (FASTA)")
+    parser.add_argument('-or', '--old-full-report', required=True, type=str, help="Input: Old Full Report (CSV)")
     parser.add_argument('-f', '--fasta-file', required=True, type=str, help="Output: Updated sequences (FASTA)")
     parser.add_argument('-py', '--dataqc_py', required=True, type=str, help="PATH to DataQC.py script")
     parser.add_argument('-d', '--dram', required=False, type=str, default=None, help="DRAM CSV file")
     parser.add_argument('-C', '--comet', required=False, type=str, default=None, help="PATH to the COMET executable")
     parser.add_argument('-t', '--tn93', required=False, type=str, default=None, help="PATH to the TN93 executable")
     args = parser.parse_args()
-    for fn in [args.csv_file, args.old_csv_file, args.old_fasta_file]:
+    for fn in [args.csv_file, args.old_csv_file, args.old_fasta_file, args.old_full_report]:
         if not isfile(fn) and not fn.startswith('/dev/fd'):
             raise ValueError("File not found: %s" % fn)
     for fn in [args.fasta_file]:
@@ -108,15 +110,15 @@ def determine_deltas(seqs_new, seqs_old):
 
 # run DataQC on all new and updated sequences
 # Argument: `user_csv_fn` = filename of user-given (new) CSV file
+# Argument: `new_updated_csv_fn` = filename of the output CSV file containing only new/updated entries from the user-given (new) CSV file
 # Argument: `to_add` = `set` containing IDs to add
 # Argument: `to_replace` = `set` containing IDs whose sequences need to be updated
 # Argument: `out_fasta_fn` = filename of output DataQC FASTA
 # Argument: `dram_path` = path to DRAM CSV file
 # Argument: `comet_path` = path to comet executable
 # Argument: `tn93_path` = path to tn93 executable
-def run_DataQC(user_csv_fn, to_add, to_replace, out_fasta_fn, dataqc_py_path, dram_path=None, comet_path=None, tn93_path=None):
+def run_DataQC(user_csv_fn, new_updated_csv_fn, to_add, to_replace, out_fasta_fn, dataqc_py_path, dram_path=None, comet_path=None, tn93_path=None):
     # build CSV file containing just new/updated sequences
-    new_updated_csv_fn = '%s.new_updated.csv' % user_csv_fn
     new_updated_csv_file = open_file(new_updated_csv_fn, 'w')
     new_updated_csv_writer = writer(new_updated_csv_file)
     user_csv_file = open_file(user_csv_fn)
@@ -175,6 +177,19 @@ def copy_unchanged_seqs(old_fasta_fn, to_keep, out_fasta_fn):
             line = old_fasta_file.readline()
     old_fasta_file.close(); out_fasta_file.close()
 
+# copy unchanged entries to DataQC full report CSV
+# Argument: `old_full_report_fn` = filename of old DataQC full report CSV
+# Argument: `to_keep` = `set` containing IDs to keep from old full report CSV
+# Argument: `out_full_report` = filename of output DataQC full report CSV
+def copy_unchanged_full_report(old_full_report_fn, to_keep, out_full_report_fn):
+    old_full_report_file = open_file(old_full_report_fn); out_full_report_file = open_file(out_full_report_fn, 'a')
+    for line_num, line in enumerate(old_full_report_file):
+        if line_num == 0:
+            continue
+        if line.split(',')[1].strip() in to_keep: # assumes document_uid is the second column (index 1 of the row)
+            out_full_report_file.write(line)
+    old_full_report_file.close(); out_full_report_file.close()
+
 # main program
 def main():
     print_log("Running DataQC True Append v%s" % DATAQC_TRUE_APPEND_VERSION)
@@ -192,10 +207,16 @@ def main():
     print_log("- Replace: %s" % len(to_replace))
     print_log("- Delete: %s" % len(to_delete))
     print_log("- Do nothing: %s" % (len(to_keep)))
-    print_log("Performing new DataQC analyses and writing output to: %s" % args.fasta_file)
-    run_DataQC(args.csv_file, to_add, to_replace, args.fasta_file, args.dataqc_py, dram_path=args.dram, comet_path=args.comet, tn93_path=args.tn93)
+    new_updated_csv_fn = '%s.new_updated.csv' % args.csv_file.rstrip('.csv')
+    print_log("Performing new DataQC analyses and writing FASTA output to: %s" % args.fasta_file)
+    run_DataQC(args.csv_file, new_updated_csv_fn, to_add, to_replace, args.fasta_file, args.dataqc_py, dram_path=args.dram, comet_path=args.comet, tn93_path=args.tn93)
     print_log("Copying unchanged DataQC sequences from: %s" % args.old_fasta_file)
     copy_unchanged_seqs(args.old_fasta_file, to_keep, args.fasta_file)
+    out_full_report_fn = '%s.full_report.csv' % '.'.join(args.fasta_file.split('.')[:-1])
+    print_log("Copying new DataQC full report contents to: %s" % out_full_report_fn)
+    copyfile('%s.full_report.csv' % new_updated_csv_fn.rstrip('.csv'), out_full_report_fn)
+    print_log("Copying unchanged DataQC full report entries from: %s" % args.old_full_report)
+    copy_unchanged_full_report(args.old_full_report, to_keep, out_full_report_fn)
 
 # run main program
 if __name__ == "__main__":
