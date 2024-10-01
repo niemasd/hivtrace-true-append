@@ -1,5 +1,4 @@
-# hivtrace-true-append
-Code related to HIV-TRACE "True Append"
+# TN93 True Append
 
 ```bash
 ./tn93_true_append.py -it example/Network-New-4.csv -iT example/Network-New-3.csv -iD example/Network-New-3.tn93.csv | pigz -9 -p 8 > tmp.tn93.csv.gz
