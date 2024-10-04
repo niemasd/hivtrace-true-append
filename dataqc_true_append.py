@@ -6,6 +6,7 @@ True Append for DataQC
 # imports
 from csv import reader, writer
 from datetime import datetime
+from gzip import open as gopen
 from os.path import isfile
 from shutil import copyfile
 from subprocess import run

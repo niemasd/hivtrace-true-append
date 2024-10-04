@@ -1,21 +1,20 @@
 #! /usr/bin/env python3
 '''
-True Append for bealign
+True Append for cawlign
 '''
 
 # imports
 from datetime import datetime
 from gzip import open as gopen
 from os.path import isfile
-from pysam import AlignmentFile
 from subprocess import run
 from sys import argv, stderr, stdin, stdout
 import argparse
 
 # constants
-BEALIGN_TRUE_APPEND_VERSION = '0.0.1'
-DEFAULT_BEALIGN_PATH = 'bealign'
-DEFAULT_BEALIGN_ARGS = ''
+CAWLIGN_TRUE_APPEND_VERSION = '0.0.1'
+DEFAULT_CAWLIGN_PATH = 'cawlign'
+DEFAULT_CAWLIGN_ARGS = ''
 STDIO = {'stderr':stderr, 'stdin':stdin, 'stdout':stdout}
 
 # return the current time as a string
@@ -42,19 +41,19 @@ def open_file(fn, mode='r', text=True):
 # parse user args
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-of', '--old_fasta_file', required=True, type=str, help="Input: Old sequences (FASTA)")
-    parser.add_argument('-ob', '--old_bam_file', required=True, type=str, help="Input: Old aligned sequences (BAM)")
-    parser.add_argument('--bealign_args', required=False, type=str, default=DEFAULT_BEALIGN_ARGS, help="Optional bealign arguments")
-    parser.add_argument('--bealign_path', required=False, type=str, default=DEFAULT_BEALIGN_PATH, help="Path to the bealign executable")
-    parser.add_argument('fasta_file', type=str, help="Input: User sequences (FASTA)")
-    parser.add_argument('bam_file', type=str, help="Output: Aligned sequences (BAM)")
+    parser.add_argument('-of', '--old_unaligned_file', required=True, type=str, help="Input: Old unaligned sequences (FASTA)")
+    parser.add_argument('-oa', '--old_aligned_file', required=True, type=str, help="Input: Old aligned sequences (FASTA)")
+    parser.add_argument('-o', '--output_aligned_file', required=False, type=str, default='stdout', help="Output: Aligned sequences (FASTA)")
+    parser.add_argument('--cawlign_args', required=False, type=str, default=DEFAULT_CAWLIGN_ARGS, help="Optional cawlign arguments")
+    parser.add_argument('--cawlign_path', required=False, type=str, default=DEFAULT_CAWLIGN_PATH, help="Path to the cawlign executable")
+    parser.add_argument('fasta_file', nargs='?', type=str, default='stdin', help="Input: User unaligned sequences (FASTA)")
     args = parser.parse_args()
-    for fn in [args.fasta_file, args.old_fasta_file, args.old_bam_file]:
-        if not isfile(fn) and not fn.startswith('/dev/fd'):
+    for fn in [args.old_unaligned_file, args.old_aligned_file, args.fasta_file]:
+        if not isfile(fn) and fn not in STDIO and not fn.startswith('/dev/fd'):
             raise ValueError("File not found: %s" % fn)
-    for fn in [args.bam_file]:
+    for fn in [args.output_aligned_file]:
         if fn.lower().endswith('.gz'):
-            raise ValueError("Cannot directly write to gzip output file")
+            raise ValueError("Cannot directly write to gzip output file. To gzip the output, specify 'stdout' as the output file, and then pipe to gzip.")
         if isfile(fn):
             raise ValueError("File exists: %s" % fn)
     return args
@@ -102,36 +101,27 @@ def determine_deltas(seqs_new, seqs_old):
             to_add.add(ID)
     return to_add, to_replace, to_delete, to_keep
 
-# run bealign on all new and updated sequences
-def run_bealign(seqs_new, new_updated_fasta_fn, to_add, to_replace, out_bam_fn, bealign_path=DEFAULT_BEALIGN_PATH, bealign_args=DEFAULT_BEALIGN_ARGS):
-    new_updated_fasta_file = open_file(new_updated_fasta_fn, 'w')
-    for k in (to_add | to_replace):
-        new_updated_fasta_file.write('>%s\n%s\n' % (k, seqs_new[k]))
-    bealign_command = [bealign_path] + [v.strip() for v in bealign_args.split()] + [new_updated_fasta_fn, out_bam_fn]
-    log_f = open_file('%s.bealign.log' % new_updated_fasta_fn, 'w')
-    run(bealign_command, stderr=log_f); log_f.close()
+# copy alignments from unchanged sequences
+def copy_unchanged_alignments(to_keep, aln_old, out_aln_file):
+    for k in to_keep:
+        out_aln_file.write('>%s\n%s\n' % (k, aln_old[k]))
 
-# merge old and new/updated BAMs
-def merge_bams(old_bam_fn, new_updated_bam_fn, out_bam_fn, to_keep):
-    old_bam_file = AlignmentFile(old_bam_fn, 'rb')
-    new_updated_bam_file = AlignmentFile(new_updated_bam_fn, 'rb')
-    out_bam_file = AlignmentFile(out_bam_fn, 'wb', template=new_updated_bam_file)
-    for read in new_updated_bam_file.fetch(until_eof=True):
-        out_bam_file.write(read)
-    for read in old_bam_file.fetch(until_eof=True):
-        if read.query_name.strip() in to_keep:
-            out_bam_file.write(read)
+# run cawlign on all new and updated sequences
+def run_cawlign(seqs_new, to_add, to_replace, out_aln_file, cawlign_path=DEFAULT_CAWLIGN_PATH, cawlign_args=DEFAULT_CAWLIGN_ARGS):
+    new_fasta_data = ''.join('>%s\n%s\n' % (k,seqs_new[k]) for k in (to_add | to_replace)).encode('utf-8')
+    cawlign_command = [cawlign_path] + [v.strip() for v in cawlign_args.split()]
+    run(cawlign_command, input=new_fasta_data, stdout=out_aln_file)
 
 # main program
 def main():
-    print_log("Running bealign True Append v%s" % BEALIGN_TRUE_APPEND_VERSION)
+    print_log("Running cawlign True Append v%s" % CAWLIGN_TRUE_APPEND_VERSION)
     args = parse_args()
     print_log("Command: %s" % ' '.join(argv))
     print_log("Loading user FASTA: %s" % args.fasta_file)
     seqs_new = load_fasta(args.fasta_file)
     print_log("- Num Sequences: %s" % len(seqs_new))
-    print_log("Parsing old FASTA: %s" % args.old_fasta_file)
-    seqs_old = load_fasta(args.old_fasta_file)
+    print_log("Parsing old FASTA: %s" % args.old_unaligned_file)
+    seqs_old = load_fasta(args.old_unaligned_file)
     print_log("- Num Sequences: %s" % (len(seqs_old)))
     print_log("Determining deltas between user table and old table...")
     to_add, to_replace, to_delete, to_keep = determine_deltas(seqs_new, seqs_old)
@@ -139,12 +129,15 @@ def main():
     print_log("- Replace: %s" % len(to_replace))
     print_log("- Delete: %s" % len(to_delete))
     print_log("- Do nothing: %s" % (len(to_keep)))
-    new_updated_fasta_fn = '%s.new_updated.fasta' % '.'.join(args.fasta_file.split('.')[:-1])
-    new_updated_bam_fn = '%s.new_updated.bam' % '.'.join(args.fasta_file.split('.')[:-1])
-    print_log("Aligning new and updated sequences and writing output to: %s" % new_updated_bam_fn)
-    run_bealign(seqs_new, new_updated_fasta_fn, to_add, to_replace, new_updated_bam_fn, bealign_path=args.bealign_path, bealign_args=args.bealign_args)
-    print_log("Merging old and new/updated alignments into: %s" % args.bam_file)
-    merge_bams(args.old_bam_file, new_updated_bam_fn, args.bam_file, to_keep)
+    print_log("Loading unchanged alignments from file: %s" % args.old_aligned_file)
+    aln_old = load_fasta(args.old_aligned_file)
+    print_log("Creating output alignment file: %s" % args.output_aligned_file)
+    out_aln_file = open_file(args.output_aligned_file, 'w')
+    print_log("Aligning new and updated sequences...")
+    run_cawlign(seqs_new, to_add, to_replace, out_aln_file, cawlign_path=args.cawlign_path, cawlign_args=args.cawlign_args)
+    print_log("Copying unchanged alignments...")
+    copy_unchanged_alignments(to_keep, aln_old, out_aln_file)
+    out_aln_file.close()
 
 # run main program
 if __name__ == "__main__":
