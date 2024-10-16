@@ -5,7 +5,6 @@ True Append for bealign
 
 # imports
 from datetime import datetime
-from gzip import open as gopen
 from os.path import isfile
 from pysam import AlignmentFile
 from subprocess import run
@@ -105,10 +104,12 @@ def determine_deltas(seqs_new, seqs_old):
 # run bealign on all new and updated sequences
 def run_bealign(seqs_new, new_updated_fasta_fn, to_add, to_replace, out_bam_fn, bealign_path=DEFAULT_BEALIGN_PATH, bealign_args=DEFAULT_BEALIGN_ARGS):
     new_updated_fasta_file = open_file(new_updated_fasta_fn, 'w')
-    for k in (to_add | to_replace):
-        new_updated_fasta_file.write('>%s\n%s\n' % (k, seqs_new[k]))
+    for k, v in seqs_new.items():
+        if (k in to_add) or (k in to_replace):
+            new_updated_fasta_file.write('>%s\n%s\n' % (k, v))
     bealign_command = [bealign_path] + [v.strip() for v in bealign_args.split()] + [new_updated_fasta_fn, out_bam_fn]
     log_f = open_file('%s.bealign.log' % new_updated_fasta_fn, 'w')
+    print_log("Running bealign: %s" % ' '.join(bealign_command))
     run(bealign_command, stderr=log_f); log_f.close()
 
 # merge old and new/updated BAMs

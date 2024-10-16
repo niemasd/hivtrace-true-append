@@ -6,7 +6,6 @@ True Append for DataQC
 # imports
 from csv import reader, writer
 from datetime import datetime
-from gzip import open as gopen
 from os.path import isfile
 from shutil import copyfile
 from subprocess import run
@@ -145,6 +144,7 @@ def run_DataQC(user_csv_fn, new_updated_csv_fn, to_add, to_replace, out_fasta_fn
     if tn93_path is not None:
         dataqc_command += ['--tn93', tn93_path]
     log_f = open_file('%s.dataqc.log' % new_updated_csv_fn, 'w')
+    print_log("Running DataQC: %s" % ' '.join(dataqc_command))
     run(dataqc_command, stderr=log_f); log_f.close()
 
 # copy unchanged sequences to new/updated DataQC output
