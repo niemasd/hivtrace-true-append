@@ -59,5 +59,22 @@ The True Append command is the following:
 ## From Scratch (no append)
 
 ```bash
+# run DataQC
 DataQCv2.py -c real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd_orig.csv -d real_data/from_scratch/DRAM.csv -f real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.fasta -t $(which tn93) > real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.dataqc.log
+
+# run hivtrace
+hivtrace -i real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.fasta -a resolve -r real_data/from_scratch/HXB2_1497.fasta -t 0.015 -m 500 -g 0.015 -s false --log real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.hivtrace.log -u separately --attributes-file real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd_patient_attributes.json --output real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.results.json --prior real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9.results.json --input-old-fasta real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9.fasta --input-old-dists real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9.filtered.fasta_user.tn93output.csv
+
+# run hivnetworkannotate
+hivnetworkannotate -n real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.results.json -a real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd_patient_attributes.json -g real_data/from_scratch/patient_attribute_schema-ehars_4_13.json -r
+
+# run create_csv_export
+./real_data/from_scratch/create_csv_export.py -i real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.results.json -c real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd_orig.csv -o real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3fd.nodes.csv
+```
+
+## True Append
+
+```bash
+# run DataQC
+# TODO SAME COMMAND AS BEFORE, BUT WITH PREVIOUS FILES GIVEN
 ```
