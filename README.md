@@ -75,6 +75,7 @@ hivnetworkannotate -n real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3f
 ## True Append
 
 ```bash
-# run DataQC
-# TODO SAME COMMAND AS BEFORE, BUT WITH PREVIOUS FILES GIVEN
+# run DataQC (first to get the previous run, then to get the new run)
+DataQCv2.py -c real_data/true_append/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.csv -d real_data/true_append/DRAM.csv -f real_data/true_append/36cecaff-fec9-4d55-bf66-476ffdc5fde9.fasta -t $(which tn93) > real_data/true_append/36cecaff-fec9-4d55-bf66-476ffdc5fde9.dataqc.log
+DataQCv2.py -c real_data/true_append/844144ea-17cc-4025-96b2-e3a21ce8e3fd_orig.csv --previous-csv-file real_data/true_append/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.csv --previous-result-file real_data/true_append/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.full_report.csv -d real_data/true_append/DRAM.csv -f real_data/true_append/844144ea-17cc-4025-96b2-e3a21ce8e3fd.fasta -t $(which tn93) > real_data/true_append/844144ea-17cc-4025-96b2-e3a21ce8e3fd.dataqc.log
 ```
