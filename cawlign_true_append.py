@@ -105,12 +105,14 @@ def determine_deltas(seqs_new, seqs_old):
 def copy_unchanged_alignments(to_keep, aln_old, out_aln_file):
     for k in to_keep:
         out_aln_file.write('>%s\n%s\n' % (k, aln_old[k]))
+    out_aln_file.flush()
 
 # run cawlign on all new and updated sequences
 def run_cawlign(seqs_new, to_add, to_replace, out_aln_file, cawlign_path=DEFAULT_CAWLIGN_PATH, cawlign_args=DEFAULT_CAWLIGN_ARGS):
     new_fasta_data = ''.join('>%s\n%s\n' % (k,seqs_new[k]) for k in (to_add | to_replace)).encode('utf-8')
     cawlign_command = [cawlign_path] + [v.strip() for v in cawlign_args.split()]
     run(cawlign_command, input=new_fasta_data, stdout=out_aln_file)
+    out_aln_file.flush()
 
 # main program
 def main():
