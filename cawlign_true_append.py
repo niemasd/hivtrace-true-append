@@ -132,12 +132,11 @@ def main():
     print_log("Loading unchanged alignments from file: %s" % args.old_aligned_file)
     aln_old = load_fasta(args.old_aligned_file)
     print_log("Creating output alignment file: %s" % args.output_aligned_file)
-    out_aln_file = open_file(args.output_aligned_file, 'w')
-    print_log("Aligning new and updated sequences...")
-    run_cawlign(seqs_new, to_add, to_replace, out_aln_file, cawlign_path=args.cawlign_path, cawlign_args=args.cawlign_args)
-    print_log("Copying unchanged alignments...")
-    copy_unchanged_alignments(to_keep, aln_old, out_aln_file)
-    out_aln_file.close()
+    with open_file(args.output_aligned_file, 'w') as out_aln_file:
+        print_log("Aligning new and updated sequences...")
+        run_cawlign(seqs_new, to_add, to_replace, out_aln_file, cawlign_path=args.cawlign_path, cawlign_args=args.cawlign_args)
+        print_log("Copying unchanged alignments...")
+        copy_unchanged_alignments(to_keep, aln_old, out_aln_file)
 
 # run main program
 if __name__ == "__main__":
