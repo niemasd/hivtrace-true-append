@@ -79,3 +79,14 @@ hivnetworkannotate -n real_data/from_scratch/844144ea-17cc-4025-96b2-e3a21ce8e3f
 DataQCv2.py -c real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.csv -d real_data/from_scratch/DRAM.csv -f real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9.fasta -t $(which tn93) > real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9.dataqc.log
 DataQCv2.py -c real_data/true_append/844144ea-17cc-4025-96b2-e3a21ce8e3fd_orig.csv --previous-csv-file real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.csv --previous-result-file real_data/from_scratch/36cecaff-fec9-4d55-bf66-476ffdc5fde9_orig.full_report.csv -d real_data/true_append/DRAM.csv -f real_data/true_append/844144ea-17cc-4025-96b2-e3a21ce8e3fd.fasta -t $(which tn93) > real_data/true_append/844144ea-17cc-4025-96b2-e3a21ce8e3fd.dataqc.log
 ```
+
+# CSV Delta Data Structure
+
+Currently, the client uploads the entire CSV, even though most entries already exist in the old dataset. Instead, we can:
+
+1. Build a summary data structure representing the elements from the old CSV server-side ([`csv_delta_build.py`](csv_delta_build.py)
+2. Send the data structure from the server to the client
+3. Determine new and updated CSV entries and remove them from the data structure client-side ([`csv_delta_check_client.py`](csv_delta_check_client.py))
+4. Send the CSV containing only new/updated entries as well as the pruned data structure from the client to the server
+5. Determine the removed CSV entries using the pruned data structure server-side (TODO)
+6. Perform "True Append" server-side
