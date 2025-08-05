@@ -9,7 +9,6 @@ as well as a copy of the input data structure but with matched entries removed (
 from gzip import open as gopen
 from niemabf import HashSet
 from os.path import isfile
-from subprocess import run
 from sys import argv, stderr, stdin, stdout
 import argparse
 

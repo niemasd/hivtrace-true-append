@@ -7,7 +7,6 @@ Build a data structure to store what CSV entries are in the existing dataset
 from gzip import open as gopen
 from os.path import isfile
 from niemabf import HashSet
-from subprocess import run
 from sys import argv, stderr, stdin, stdout
 import argparse
 

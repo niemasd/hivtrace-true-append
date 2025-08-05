@@ -88,5 +88,5 @@ Currently, the client uploads the entire CSV, even though most entries already e
 2. Send the data structure from the server to the client
 3. Determine new and updated CSV entries and remove them from the data structure client-side ([`csv_delta_check_client.py`](csv_delta_check_client.py))
 4. Send the CSV containing only new/updated entries as well as the pruned data structure from the client to the server
-5. Determine the removed CSV entries using the pruned data structure server-side (TODO)
+5. Determine the removed CSV entries using the pruned data structure server-side ([`csv_delta_check_server.py`](csv_delta_check_server.py))
 6. Perform "True Append" server-side
